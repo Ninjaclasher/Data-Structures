@@ -9,53 +9,85 @@
 #include <type_traits>
 #include <vector>
 
-template <typename Tstored, typename Tsize>
-class SegmentTree : public DataStructure<Tsize>
+template <typename T>
+class SegmentTree : public DataStructure<unsigned int>
 {
-    static_assert(std::is_integral<Tstored>::value, "Integer type required.");
-    static_assert(std::is_arithmetic<Tstored>::value, "Arithmetic is not supported with supplied type.");
+    static_assert(std::is_integral<T>::value, "Integer type required.");
+    static_assert(std::is_arithmetic<T>::value, "Arithmetic is not supported with supplied type.");
 public:
-    SegmentTree(const std::vector<Tstored>&, std::function<Tstored(Tstored, Tstored)>);
-    void update(Tsize, Tstored);
-    void update(Tsize, Tsize, Tstored);
-    Tstored query (Tsize, Tsize);
+    SegmentTree(const unsigned int);
+    SegmentTree(const unsigned int, std::function<T(T, T)>);
+    SegmentTree(const std::vector<T>&, std::function<T(T, T)>);
+    SegmentTree(const std::vector<T>&);
+    void update(unsigned int, T);
+    void update(unsigned int, unsigned int, T);
+    T query (unsigned int, unsigned int);
     void reset();
 
 private:
-    Tstored construct(const std::vector<Tstored>&, Tsize, Tsize, Tsize);
-    void updateRangeUtil(Tsize, Tsize, Tsize, Tsize, Tsize, Tstored);
-    std::vector<Tstored> tree;
-    std::vector<Tstored> lazy;
-    std::function<Tstored(Tstored, Tstored)> run;
+    T construct(const std::vector<T>&, unsigned int, unsigned int, unsigned int);
+    void updateRangeUtil(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, T);
+    std::vector<T> tree, lazy;
+    std::function<T(T, T)> run;
 };
 
-template <typename Tstored, typename Tsize>
-SegmentTree<Tstored,Tsize>::SegmentTree(const std::vector<Tstored>& originalArray, std::function<Tstored(Tstored, Tstored)> aa) 
-    : DataStructure<Tsize>(originalArray.size()), run(aa)
+template <typename T>
+SegmentTree<T>::SegmentTree(const unsigned int n)
+    : DataStructure<unsigned int>(n)
 {
-    Tsize nElements = 2*pow(2, ceil(log2(this->numElements)))-1;
+    run = [](T n1, T n2) {return n1+n2;};
+    unsigned int nElements = 2*pow(2, ceil(log2(this->numElements)))-1;
+    tree.resize(nElements);
+    lazy.resize(nElements);    
+}
+
+template <typename T>
+SegmentTree<T>::SegmentTree(const unsigned int n, std::function<T(T, T)> func)
+    : DataStructure<unsigned int>(n), run(func)
+{
+    unsigned int nElements = 2*pow(2, ceil(log2(this->numElements)))-1;
+    tree.resize(nElements);
+    lazy.resize(nElements);
+}
+
+template <typename T>
+SegmentTree<T>::SegmentTree(const std::vector<T>& originalArray) 
+    : DataStructure<unsigned int>(originalArray.size())
+{
+    run = [](T n1, T n2) {return n1+n2;};    
+    unsigned int nElements = 2*pow(2, ceil(log2(this->numElements)))-1;
     tree.resize(nElements);
     lazy.resize(nElements);
     construct(originalArray, 0, this->numElements-1, 0);
-} 
+}
 
-template <typename Tstored, typename Tsize>
-void SegmentTree<Tstored,Tsize>::reset()
+template <typename T>
+SegmentTree<T>::SegmentTree(const std::vector<T>& originalArray, std::function<T(T, T)> func) 
+    : DataStructure<unsigned int>(originalArray.size()), run(func)
+{
+    unsigned int nElements = 2*pow(2, ceil(log2(this->numElements)))-1;
+    tree.resize(nElements);
+    lazy.resize(nElements);
+    construct(originalArray, 0, this->numElements-1, 0);
+}
+
+template <typename T>
+void SegmentTree<T>::reset()
 {
     fill(tree.begin(), tree.end(), 0);
     fill(lazy.begin(), lazy.end(), 0);
 }
 
-template <typename Tstored, typename Tsize>
-Tstored SegmentTree<Tstored,Tsize>::query(Tsize qs, Tsize qe)
+template <typename T>
+T SegmentTree<T>::query(unsigned int qs, unsigned int qe)
 {
-    Tstored result = 0;
-    std::queue<std::pair<Tsize,std::pair<Tsize,Tsize>>> buf;
+    T result = 0;
+    std::queue<std::pair<unsigned int,std::pair<unsigned int,unsigned int>>> buf;
     buf.push(std::make_pair(0, std::make_pair(0, this->numElements-1)));
 
     while (!buf.empty())
     {
-        Tsize v = buf.front().first, s = buf.front().second.first, e = buf.front().second.second;
+        unsigned int v = buf.front().first, s = buf.front().second.first, e = buf.front().second.second;
         buf.pop();
         if (lazy[v])
         {
@@ -71,7 +103,7 @@ Tstored SegmentTree<Tstored,Tsize>::query(Tsize qs, Tsize qe)
             result = run(result, tree[v]);
         else if (s <= qe && e >= qs)
         {
-            Tsize mid = s + (e -s)/2;
+            unsigned int mid = s + (e -s)/2;
             buf.push(std::make_pair(2*v+1, std::make_pair(s, mid)));
             buf.push(std::make_pair(2*v+2, std::make_pair(mid+1, e)));
         }
@@ -79,15 +111,15 @@ Tstored SegmentTree<Tstored,Tsize>::query(Tsize qs, Tsize qe)
     return result;
 }
  
-template <typename Tstored, typename Tsize>
-void SegmentTree<Tstored,Tsize>::update(Tsize index, Tstored val)
+template <typename T>
+void SegmentTree<T>::update(unsigned int index, T val)
 {
-    std::queue<std::pair<Tsize,std::pair<Tsize,Tsize>>> buf;
+    std::queue<std::pair<unsigned int,std::pair<unsigned int,unsigned int>>> buf;
     buf.push(std::make_pair(0, std::make_pair(0, this->numElements-1)));
 
     while (!buf.empty())
     {
-        Tsize v = buf.front().first, s = buf.front().second.first, e = buf.front().second.second;
+        unsigned int v = buf.front().first, s = buf.front().second.first, e = buf.front().second.second;
         buf.pop();
         if (lazy[v])
         {
@@ -104,7 +136,7 @@ void SegmentTree<Tstored,Tsize>::update(Tsize index, Tstored val)
             tree[v] = run(val, tree[v]);
             if (s != e)
             {
-                Tsize mid = s + (e -s)/2;
+                unsigned int mid = s + (e -s)/2;
                 buf.push(std::make_pair(2*v+1, std::make_pair(s, mid)));
                 buf.push(std::make_pair(2*v+2, std::make_pair(mid+1, e)));
             }
@@ -112,14 +144,14 @@ void SegmentTree<Tstored,Tsize>::update(Tsize index, Tstored val)
     } 
 }
 
-template <typename Tstored, typename Tsize>
-void SegmentTree<Tstored, Tsize>::update(Tsize us, Tsize ue, Tstored val)
+template <typename T>
+void SegmentTree<T>::update(unsigned int us, unsigned int ue, T val)
 {
     updateRangeUtil(0, 0, this->numElements-1, us, ue, val);
 }
 
-template <typename Tstored, typename Tsize>
-void SegmentTree<Tstored,Tsize>::updateRangeUtil(Tsize v, Tsize s, Tsize e, Tsize l, Tsize r, Tstored val)
+template <typename T>
+void SegmentTree<T>::updateRangeUtil(unsigned int v, unsigned int s, unsigned int e, unsigned int l, unsigned int r, T val)
 {
     if (lazy[v])
     { 
@@ -149,8 +181,8 @@ void SegmentTree<Tstored,Tsize>::updateRangeUtil(Tsize v, Tsize s, Tsize e, Tsiz
     tree[v] = run(tree[2*v+1], tree[2*v+2]);  
 }
 
-template <typename Tstored, typename Tsize>
-Tstored SegmentTree<Tstored,Tsize>::construct(const std::vector<Tstored>& arr, Tsize s, Tsize e, Tsize v)
+template <typename T>
+T SegmentTree<T>::construct(const std::vector<T>& arr, unsigned int s, unsigned int e, unsigned int v)
 {
     if (s == e)
     {
@@ -158,7 +190,7 @@ Tstored SegmentTree<Tstored,Tsize>::construct(const std::vector<Tstored>& arr, T
         return arr[s];
     }
  
-    Tsize mid = s + (e -s)/2;
+    unsigned int mid = s + (e -s)/2;
     tree[v] = run(construct(arr, s, mid, v*2+1), construct(arr, mid+1, e, v*2+2));
     return tree[v];
 }

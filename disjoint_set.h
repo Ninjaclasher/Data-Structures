@@ -7,7 +7,7 @@
 #include <vector>
 
 template <typename T>
-class DisjointSet : public DataStructure<T>
+class DisjointSet : public DataStructure<unsigned int>
 {
 public:
     DisjointSet(const T);
@@ -20,7 +20,7 @@ private:
 };
 
 template <typename T>
-DisjointSet<T>::DisjointSet(const T n) : DataStructure<T>(n)
+DisjointSet<T>::DisjointSet(const T n) : DataStructure<unsigned int>(n)
 {
     rnk.resize(this->numElements, 0), parent.resize(this->numElements);
     reset();

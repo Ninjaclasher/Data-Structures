@@ -5,56 +5,61 @@
 #include <vector>
 #include <type_traits>
 
-template <typename Tstored, typename Tsize>
-class BinaryIndexTree : public DataStructure<Tsize>
+template <typename T>
+class BinaryIndexTree : public DataStructure<unsigned int>
 {
-    static_assert(std::is_integral<Tstored>::value, "Integer type required.");
-    static_assert(std::is_arithmetic<Tstored>::value, "Arithmetic is not supported with supplied type.");
+    static_assert(std::is_integral<T>::value, "Integer type required.");
+    static_assert(std::is_arithmetic<T>::value, "Arithmetic is not supported with supplied type.");
 public:
-    BinaryIndexTree(const Tsize);
-    Tstored range (Tsize);
-    void update (Tsize, const Tstored);
-    void change (Tsize, const Tstored);
+    BinaryIndexTree(const unsigned int);
+    BinaryIndexTree(const unsigned int, T);
+    T query (unsigned int);
+    void update (unsigned int, const T);
+    void change (unsigned int, const T);
     void reset();
 
 private:
-    std::vector<Tstored> tree;
-
+    std::vector<T> tree;
 };
 
-template <typename Tstored, typename Tsize>
-BinaryIndexTree<Tstored, Tsize>::BinaryIndexTree (const Tsize n) : DataStructure<Tsize> (n)
+template <typename T>
+BinaryIndexTree<T>::BinaryIndexTree (const unsigned int n) : DataStructure<unsigned int> (n)
 {
     tree.resize(this->numElements, 0);
-    reset();
 }
 
-template <typename Tstored, typename Tsize>
-void BinaryIndexTree<Tstored, Tsize>::reset()
+template <typename T>
+BinaryIndexTree<T>::BinaryIndexTree (const unsigned int n, T val) : DataStructure<unsigned int> (n)
+{
+    tree.resize(this->numElements, val);
+}
+
+template <typename T>
+void BinaryIndexTree<T>::reset()
 {
     fill (tree.begin(), tree.end(), 0);
 }
 
-template <typename Tstored, typename Tsize>
-Tstored BinaryIndexTree<Tstored, Tsize>::range (Tsize index)
+template <typename T>
+T BinaryIndexTree<T>::query (unsigned int index)
 {
-    Tstored sum = 0;
+    T sum = 0;
     for (; index > 0; index -= index&-index)
         sum+=tree[index];
     return sum;
 }
 
-template <typename Tstored, typename Tsize>
-void BinaryIndexTree<Tstored, Tsize>::update (Tsize index, const Tstored val)
+template <typename T>
+void BinaryIndexTree<T>::update (unsigned int index, const T val)
 {
     for (; index <= this->numElements; index += index&-index)
         tree[index] += val;
 }
 
-template <typename Tstored, typename Tsize>
-void BinaryIndexTree<Tstored, Tsize>::change (Tsize index, const Tstored val)
+template <typename T>
+void BinaryIndexTree<T>::change (unsigned int index, const T val)
 {
-    update (index, val-range(index)+range(index-1));
+    update (index, val-query(index)+query(index-1));
 }
 
 #endif
